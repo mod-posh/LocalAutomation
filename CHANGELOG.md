@@ -5,6 +5,15 @@ All changes to this module should be reflected in this document.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [[1.1.0]](https://github.com/mod-posh/LocalAutomation/releases/tag/v1.1.0) - 2023-01-22
+
+This release contains additional documentation and more scripts
+
+1. Vscode
+   1. settings.json : How my vscode environment is set up
+
+---
+
 ## [[1.0.0]](https://github.com/mod-posh/LocalAutomation/releases/tag/v1.0.0) - 2023-01-22
 
 The initial release contains the base files as they are from existing repositories with some sanitizing and cleanup.

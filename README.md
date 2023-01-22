@@ -6,6 +6,10 @@ This is a collection of scripts that I use for PowerShell Module Development C# 
 
 There are times when I have issues with VSCode and the built-in PSScriptAnalyzer, mainly around psake Tasks, but in a few other places as well. Including this file in my Repositories since I rarely remember where it is.
 
+## Vscode
+
+The settings file is how my local vscode is setup
+
 ## ComplexModules
 
 Complex modules are PowerShell modules made up of multiple modules. For my setup, the individual modules are built into a single module through my psake tasks.
