@@ -11,7 +11,7 @@ You will need to have the following modules installed :
  3. PlatyPS             : This is used to set up and build the help documents
  4. Pester              : This is the testing framework
 
-Please see the [psakeile](psakefile.ps1) for the versions currently used.
+Please see the [psakefile](psakefile.ps1) for the versions currently used.
 
 ## Supporting Files
 
