@@ -1,14 +1,16 @@
-$script:ModuleName = '';                                                                 # The name of your PowerShell module
+$script:ModuleName = ''; # The name of your PowerShell module
+$script:ProjectName = ""; # The name of your C# Project
+$script:DotnetVersion = "net6.0"; # The version of .Net the project is targeted to
 $script:GithubOrg = ''                                                                   # This could be your github username if you're not working in a Github Org
-$script:Repository = "https://github.com/$($script:GithubOrg)";                          # This is the Github Repo
-$script:DeployBranch = 'master';                                                         # The branch that we deploy from, typically master or main
-$script:Source = Join-Path $PSScriptRoot $ModuleName;                                    # This will be the root of your Module Project, not the Repository Root
-$script:Output = Join-Path $PSScriptRoot 'output';                                       # The module will be output into this folder
-$script:Docs = Join-Path $PSScriptRoot 'docs';                                           # The root folder for the PowerShell Module
-$script:Destination = Join-Path $Output $ModuleName;                                     # The PowerShell module folder that contains the manifest and other files
-$script:ModulePath = "$Destination\$ModuleName.psm1";                                    # The main PowerShell Module file
-$script:ManifestPath = "$Destination\$ModuleName.psd1";                                  # The main PowerShell Module Manifest
-$script:TestFile = ("TestResults_$(Get-Date -Format s).xml").Replace(':', '-');          # The Pester Test output file
+$script:Repository = "https://github.com/$($script:GithubOrg)"; # This is the Github Repo
+$script:DeployBranch = 'master'; # The branch that we deploy from, typically master or main
+$script:Source = Join-Path $PSScriptRoot $script:ModuleName; # This will be the root of your Module Project, not the Repository Root
+$script:Output = Join-Path $PSScriptRoot 'output'; # The module will be output into this folder
+$script:Docs = Join-Path $PSScriptRoot 'docs'; # The root folder for the PowerShell Module
+$script:Destination = Join-Path $Output $script:ModuleName; # The PowerShell module folder that contains the manifest and other files
+$script:ModulePath = "$Destination\$script:ModuleName.psm1"; # The main PowerShell Module file
+$script:ManifestPath = "$Destination\$script:ModuleName.psd1"; # The main PowerShell Module Manifest
+$script:TestFile = ("TestResults_$(Get-Date -Format s).xml").Replace(':', '-'); # The Pester Test output file
 $script:PoshGallery = "https://www.powershellgallery.com/packages/$($script:ModuleName)" # The PowerShell Gallery URL
 
 $BuildHelpers = Get-Module -ListAvailable | Where-Object -Property Name -eq BuildHelpers;
@@ -56,23 +58,6 @@ else
  throw "Please Install-Module -Name Pester";
 }
 
-$Global:settings = Get-Content -Path "$($PSScriptRoot)\ado.json" | ConvertFrom-Json;
-foreach ($Name in ($Global:settings | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name))
-{
- $Org = $Global:settings.$Name;
- $ExpirationDate = Get-Date($Org.Expiration);
- $Today = (Get-Date(Get-Date -Format yyyy-MM-dd));
- $DateDiff = New-TimeSpan -Start $Today -End $ExpirationDate;
- if ($DateDiff.TotalDays -le 7)
- {
-  Write-Host -ForegroundColor Red "Warning: $($Org.OrgName) Token Expires : $($Org.Expiration)";
- }
- else
- {
-  Write-Host -ForegroundColor Blue "Info: $($Org.OrgName) Token Expires in $($DateDiff.TotalDays) days"
- }
-}
-
 Write-Host -ForegroundColor Green "ModuleName   : $($script:ModuleName)";
 Write-Host -ForegroundColor Green "Githuborg    : $($script:Source)";
 Write-Host -ForegroundColor Green "Source       : $($script:Source)";
@@ -86,87 +71,17 @@ Write-Host -ForegroundColor Green "Repository   : $($script:Repository)";
 Write-Host -ForegroundColor Green "PoshGallery  : $($script:PoshGallery)";
 Write-Host -ForegroundColor Green "DeployBranch : $($script:DeployBranch)";
 
-Task LocalUse -description "Use for local testing" -depends Clean, BuildModule , BuildManifest
+Task default -depends LocalUser
+
+Task LocalUse -Description "Setup for local use and testing" -depends Clean, BuildProject, CopyModuleFiles
 
 Task Build -depends LocalUse, PesterTest
 Task Package -depends CreateExternalHelp, CreateCabFile, UpdateReadme
 Task Deploy -depends CheckBranch, ReleaseNotes, PublishModule, NewTaggedRelease, Post2Discord
 
-
-Task Clean {
+Task Clean -depends CleanProject {
  $null = Remove-Item $Output -Recurse -ErrorAction Ignore
  $null = New-Item -Type Directory -Path $Destination
-}
-
-Task BuildModule -description "Compile the Build Module" -action {
- $ModulePath = Join-Path $script:Source $script:ModuleName;
- $ModuleDestination = Join-Path $script:Destination $script:ModuleName;
- [System.Text.StringBuilder]$stringbuilder = [System.Text.StringBuilder]::new()
- [void]$stringbuilder.AppendLine( "# .ExternalHelp $($script:ModuleName)-help.xml" )
- [void]$stringbuilder.AppendLine( "Write-Verbose 'Importing from [$($ModulePath)]'" )
- if (Test-Path "$($ModulePath)")
- {
-  $fileList = Get-ChildItem -Recurse -Path "$($ModulePath)\*.ps1" -Exclude "*.Tests.ps1"
-  foreach ($file in $fileList)
-  {
-   $shortName = $file.BaseName
-   Write-Output "  Importing [.$shortName]"
-   [void]$stringbuilder.AppendLine( "# .$shortName" )
-   [void]$stringbuilder.AppendLine( [System.IO.File]::ReadAllText($file.fullname) )
-  }
- }
-
- Write-Output "  Creating module [$ModuleDestination]"
- Set-Content -Path  "$($ModuleDestination).psm1" -Value $stringbuilder.ToString()
-}
-
-Task BuildManifest -description "Compile the Module Manifest" -action {
- $ModulePath = $script:Source
- $ModuleDestination = $script:Destination;
- $CurrentManifestPath = "$($ModulePath)\$($script:ModuleName).psd1"
- Write-Output "$($script:Source)"
- Write-Output "  Update [$ModuleDestination]"
- $Functions = @()
- $NestedModules = $ModuleList | ForEach-Object { "$($_)\$($_).psd1" }
- foreach ($Folder in (Get-ChildItem -Path $ModulePath -Directory))
- {
-  if (Test-Path -Path $Folder.FullName)
-  {
-   $FileList = Get-ChildItem -Recurse -Path $Folder.FullName -Filter "*.ps1" -Exclude "*.Tests.ps1";
-   foreach ($File in $FileList)
-   {
-    $AST = [System.Management.Automation.Language.Parser]::ParseFile($File.FullName, [ref]$null, [ref]$null);
-    $Name = $AST.FindAll({ $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true).Name
-    $Functions += $Name;
-   }
-  }
-  Update-Metadata -Path $CurrentManifestPath -PropertyName FunctionsToExport -Value $Functions
- }
- Update-Metadata -Path $CurrentManifestPath -PropertyName NestedModules -Value $NestedModules;
- Update-Metadata -Path $CurrentManifestPath -PropertyName ModuleList -Value $NestedModules;
- Copy-Item $CurrentManifestPath -Destination $ModuleDestination
-}
-
-Task PesterTest -description "Test module" -action {
- $TestResults = Invoke-Pester -OutputFormat NUnitXml -OutputFile "$($PSScriptRoot)\$($script:TestFile)";
- if ($TestResults.FailedCount -gt 0)
- {
-  Write-Error "Failed [$($TestResults.FailedCount)] Pester tests"
- }
-}
-
-Task UpdateHelp -Description "Update the help files" -Action {
- Import-Module -Name "$($script:Output)\$($script:ModuleName)" -Scope Global -force;
- New-MarkdownHelp -Module $script:ModuleName -AlphabeticParamsOrder -UseFullTypeName -WithModulePage -OutputFolder $script:Docs -ErrorAction SilentlyContinue
- Update-MarkdownHelp -Path $script:Docs -AlphabeticParamsOrder -UseFullTypeName
-}
-
-Task CreateExternalHelp -Description "Create external help file" -Action {
- New-ExternalHelp -Path $script:Docs -OutputPath "$($script:Output)\$($script:ModuleName)" -Force
-}
-
-Task CreateCabFile -Description "Create cab file for download" -Action {
- New-ExternalHelpCab -CabFilesFolder "$($script:Output)\$($script:ModuleName)" -LandingPagePath "$($script:Docs)\$($script:ModuleName).md" -OutputFolder "$($PSScriptRoot)\cabs\"
 }
 
 Task UpdateReadme -Description "Update the README file" -Action {
@@ -186,13 +101,12 @@ Task UpdateReadme -Description "Update the README file" -Action {
  Write-Output $Columns | Out-File $readMe.FullName -Append
  Write-Output "| $($VersionBadge) | $($GalleryBadge) | $($IssueBadge) | $($LicenseBadge) | $($DiscordBadge) |" | Out-File $readMe.FullName -Append
 
- Get-Content "$($PSScriptRoot)\Overview.md" | Out-File $readMe.FullName -Append
  Get-Content "$($script:Docs)\$($script:ModuleName).md" | Select-Object -Skip 8 | ForEach-Object { $_.Replace('(', '(Docs/') } | Out-File $readMe.FullName -Append
  Write-Output "" | Out-File $readMe.FullName -Append
 }
 
 Task NewTaggedRelease -Description "Create a tagged release" -Action {
- $Github = (Get-Content -Path "$($PSScriptRoot)\github.token") | ConvertFrom-Json
+ $Github = (Get-Content -Path "$($PSScriptRoot)\github.json") | ConvertFrom-Json
  $Credential = New-Credential -Username ignoreme -Password $Github.Token
  Set-GitHubAuthentication -Credential $Credential
  if (!(Get-Module -Name $script:ModuleName )) { Import-Module -Name "$($script:Output)\$($script:ModuleName)" }
@@ -207,9 +121,56 @@ Task NewTaggedRelease -Description "Create a tagged release" -Action {
 
 Task Post2Discord -Description "Post a message to discord" -Action {
  $version = (Get-Module -Name $($script:ModuleName) | Select-Object -Property Version).Version.ToString()
- $Discord = Get-Content .\discord.json | ConvertFrom-Json
- $Discord.message.content = "Version $($version) of $($script:ModuleName) released. Please visit Github ($($script:Repository)/$($script:ModuleName)) or PowershellGallery ($($PoshGallery)) to download."
+ $Discord = Get-Content -Path "$($PSScriptRoot)\discord.json" | ConvertFrom-Json
+ $Discord.message.content = "Version $($version) of $($script:ModuleName) released. Please visit Github ($($script:Repository)/$($script:ModuleName)) or PowershellGallery ($($script:PoshGallery)) to download."
  Invoke-RestMethod -Uri $Discord.uri -Body ($Discord.message | ConvertTo-Json -Compress) -Method Post -ContentType 'application/json; charset=UTF-8'
+}
+
+Task CleanProject -Description "Clean the project before building" -Action {
+ dotnet clean "$($PSScriptRoot)\$($script:ProjectName)\$($script:ProjectName).csproj"
+}
+
+Task BuildProject -Description "Build the project" -Action {
+ dotnet build "$($PSScriptRoot)\$($script:ProjectName)\$($script:ProjectName).csproj" -c Release
+}
+
+Task CopyModuleFiles -Description "Copy files for the module" -Action {
+ Copy-Item "$($PSScriptRoot)\$($script:ProjectName)\bin\Release\$($script:DotnetVersion)\*.dll" $script:Destination -Force
+ Copy-Item "$($PSScriptRoot)\$($script:ModuleName).psd1" $script:Destination -Force
+}
+
+Task CreateExternalHelp -Description "Create external help file" -Action {
+ New-ExternalHelp -Path $script:Docs -OutputPath $script:Destination -Force
+}
+
+Task CreateCabFile -Description "Create cab file for download" -Action {
+ New-ExternalHelpCab -CabFilesFolder $script:Destination -LandingPagePath "$($script:Docs)\$($script:ModuleName).md" -OutputFolder "$($PSScriptRoot)\cabs\"
+}
+
+Task PesterTest -description "Test module" -action {
+ $TestResults = Invoke-Pester -OutputFormat NUnitXml -OutputFile "$($PSScriptRoot)\$($script:TestFile)";
+ if ($TestResults.FailedCount -gt 0)
+ {
+  Write-Error "Failed [$($TestResults.FailedCount)] Pester tests"
+ }
+}
+
+Task CheckBranch -Description "A test that should fail if we deploy while not on master" -Action {
+ $branch = git branch --show-current
+ if ($branch -ne $script:DeployBranch)
+ {
+  [System.Net.WebSockets.WebSocketException]$Exception = "You are not on the deployment branch: $($script:DeployBranch)"
+  [string]$ErrorId = "Git.WrongBranch"
+  [System.Management.Automation.ErrorCategory]$Category = [System.Management.Automation.ErrorCategory]::InvalidOperation
+  $PSCmdlet.ThrowTerminatingError(
+   [System.Management.Automation.ErrorRecord]::new(
+    $Exception,
+    $ErrorId,
+    $Category,
+    $null
+   )
+  )
+ }
 }
 
 Task ReleaseNotes -Description "Create release notes file for module manifest" -Action {
@@ -236,24 +197,6 @@ Task ReleaseNotes -Description "Create release notes file for module manifest" -
    }
   }
   Out-File -FilePath "$($PSScriptRoot)\RELEASE.md" -InputObject $stringbuilder.ToString() -Encoding ascii -Force
- }
-}
-
-Task CheckBranch -Description "A test that should fail if we deploy while not on master" -Action {
- $branch = git branch --show-current
- if ($branch -ne $script:DeployBranch)
- {
-  [System.Net.WebSockets.WebSocketException]$Exception = "You are not on the deployment branch: $($script:DeployBranch)"
-  [string]$ErrorId = "Git.WrongBranch"
-  [System.Management.Automation.ErrorCategory]$Category = [System.Management.Automation.ErrorCategory]::InvalidOperation
-  $PSCmdlet.ThrowTerminatingError(
-   [System.Management.Automation.ErrorRecord]::new(
-    $Exception,
-    $ErrorId,
-    $Category,
-    $null
-   )
-  )
  }
 }
 

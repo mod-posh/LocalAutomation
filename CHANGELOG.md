@@ -11,6 +11,8 @@ This release contains additional documentation and more scripts
 
 1. Vscode
    1. settings.json : How my vscode environment is set up
+2. C-Sharp Module
+3. Calculate expiration on tokens outside of tasks
 
 ---
 
