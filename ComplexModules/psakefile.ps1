@@ -57,6 +57,23 @@ else
  throw "Please Install-Module -Name Pester";
 }
 
+$Global:settings = Get-Content -Path "$($PSScriptRoot)\ado.json" | ConvertFrom-Json;
+foreach ($Name in ($Global:settings | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name))
+{
+ $Org = $Global:settings.$Name;
+ $ExpirationDate = Get-Date($Org.Expiration);
+ $Today = (Get-Date(Get-Date -Format yyyy-MM-dd));
+ $DateDiff = New-TimeSpan -Start $Today -End $ExpirationDate;
+ if ($DateDiff.TotalDays -le 7)
+ {
+  Write-Host -ForegroundColor Red "Warning: $($Org.OrgName) Token Expires : $($Org.Expiration)";
+ }
+ else
+ {
+  Write-Host -ForegroundColor Blue "Info: $($Org.OrgName) Token Expires in $($DateDiff.TotalDays) days"
+ }
+}
+
 Write-Host -ForegroundColor Green "ModuleName   : $($script:ModuleName)";
 Write-Host -ForegroundColor Green "Githuborg    : $($script:Source)";
 Write-Host -ForegroundColor Green "Source       : $($script:Source)";
@@ -80,22 +97,6 @@ Task Deploy -depends CheckBranch, ReleaseNotes, PublishModule, NewTaggedRelease,
 Task Clean {
  $null = Remove-Item $Output -Recurse -ErrorAction Ignore
  $null = New-Item -Type Directory -Path $Destination
- $Global:settings = Get-Content -Path "$($PSScriptRoot)\ado.json" | ConvertFrom-Json;
- foreach ($Name in ($Global:settings | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name))
- {
-  $Org = $Global:settings.$Name;
-  $ExpirationDate = Get-Date($Org.Expiration);
-  $Today = (Get-Date(Get-Date -Format yyyy-MM-dd));
-  $DateDiff = New-TimeSpan -Start $Today -End $ExpirationDate;
-  if ($DateDiff.TotalDays -le 7)
-  {
-   Write-Host -ForegroundColor Red "Warning: $($Org.OrgName) Token Expires : $($Org.Expiration)";
-  }
-  else
-  {
-   Write-Host -ForegroundColor Blue "Info: $($Org.OrgName) Token Expires in $($DateDiff.TotalDays) days"
-  }
- }
 }
 
 Task BuildModule -description "Compile the Build Module" -action {
