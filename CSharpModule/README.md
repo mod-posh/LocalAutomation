@@ -1,6 +1,8 @@
-# Simple Modules
+# CSharp Modules
 
-Enclosed are the files I use to build and deploy PowerShell script modules that are composed of multiple Nested PowerShell modules. The basic file structure is included so you have an idea of what it should look like. There are several Modules that are required and the Tasks will check for them at the start.
+Enclosed are the files I use to build and deploy PowerShell CSharp modules. The basic file structure is included so you have an idea of what it should look like. There are several Modules that are required and the Tasks will check for them at the start. This project assumes that you have placed your code in a subfolder named after your project (there is a checkbox for this during the project creation in Visual Studio).
+
+If your project is not in a subfolder but directly in the root of the project you will need to uncomment the Source variable that doesn't include the ProjectName.
 
 ## Dependencies
 
