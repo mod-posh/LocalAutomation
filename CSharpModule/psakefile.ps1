@@ -1,16 +1,17 @@
-$script:ModuleName = ''; # The name of your PowerShell module
-$script:ProjectName = ""; # The name of your C# Project
-$script:DotnetVersion = "net6.0"; # The version of .Net the project is targeted to
+$script:ModuleName = '';                                                                 # The name of your PowerShell module
+$script:ProjectName = "";                                                                # The name of your C# Project
+$script:DotnetVersion = "net6.0";                                                        # The version of .Net the project is targeted to
 $script:GithubOrg = ''                                                                   # This could be your github username if you're not working in a Github Org
-$script:Repository = "https://github.com/$($script:GithubOrg)"; # This is the Github Repo
-$script:DeployBranch = 'master'; # The branch that we deploy from, typically master or main
-$script:Source = Join-Path $PSScriptRoot $script:ModuleName; # This will be the root of your Module Project, not the Repository Root
-$script:Output = Join-Path $PSScriptRoot 'output'; # The module will be output into this folder
-$script:Docs = Join-Path $PSScriptRoot 'docs'; # The root folder for the PowerShell Module
-$script:Destination = Join-Path $Output $script:ModuleName; # The PowerShell module folder that contains the manifest and other files
-$script:ModulePath = "$Destination\$script:ModuleName.psm1"; # The main PowerShell Module file
-$script:ManifestPath = "$Destination\$script:ModuleName.psd1"; # The main PowerShell Module Manifest
-$script:TestFile = ("TestResults_$(Get-Date -Format s).xml").Replace(':', '-'); # The Pester Test output file
+$script:Repository = "https://github.com/$($script:GithubOrg)";                          # This is the Github Repo
+$script:DeployBranch = 'master';                                                         # The branch that we deploy from, typically master or main
+$script:Source = Join-Path $PSScriptRoot $script:ModuleName;                             # This will be the root of your Module Project, not the Repository Root
+#$script:Source = $PSScriptRoot;                                                          # This will be the root of your Module Project
+$script:Output = Join-Path $PSScriptRoot 'output';                                       # The module will be output into this folder
+$script:Docs = Join-Path $PSScriptRoot 'docs';                                           # The root folder for the PowerShell Module
+$script:Destination = Join-Path $Output $script:ModuleName;                              # The PowerShell module folder that contains the manifest and other files
+$script:ModulePath = "$Destination\$script:ModuleName.dll";                              # The main PowerShell Module file
+$script:ManifestPath = "$Destination\$script:ModuleName.psd1";                           # The main PowerShell Module Manifest
+$script:TestFile = ("TestResults_$(Get-Date -Format s).xml").Replace(':', '-');          # The Pester Test output file
 $script:PoshGallery = "https://www.powershellgallery.com/packages/$($script:ModuleName)" # The PowerShell Gallery URL
 
 $BuildHelpers = Get-Module -ListAvailable | Where-Object -Property Name -eq BuildHelpers;
@@ -58,20 +59,22 @@ else
  throw "Please Install-Module -Name Pester";
 }
 
-Write-Host -ForegroundColor Green "ModuleName   : $($script:ModuleName)";
-Write-Host -ForegroundColor Green "Githuborg    : $($script:Source)";
-Write-Host -ForegroundColor Green "Source       : $($script:Source)";
-Write-Host -ForegroundColor Green "Output       : $($script:Output)";
-Write-Host -ForegroundColor Green "Docs         : $($script:Docs)";
-Write-Host -ForegroundColor Green "Destination  : $($script:Destination)";
-Write-Host -ForegroundColor Green "ModulePath   : $($script:ModulePath)";
-Write-Host -ForegroundColor Green "ManifestPath : $($script:ManifestPath)";
-Write-Host -ForegroundColor Green "TestFile     : $($script:TestFile)";
-Write-Host -ForegroundColor Green "Repository   : $($script:Repository)";
-Write-Host -ForegroundColor Green "PoshGallery  : $($script:PoshGallery)";
-Write-Host -ForegroundColor Green "DeployBranch : $($script:DeployBranch)";
+Write-Host -ForegroundColor Green "ModuleName    : $($script:ModuleName)";
+Write-Host -ForegroundColor Green "ProjectName   : $($script:ProjectName)";
+Write-Host -ForegroundColor Green "DotnetVersion : $($script:DotnetVersion)";
+Write-Host -ForegroundColor Green "Githuborg     : $($script:Source)";
+Write-Host -ForegroundColor Green "Source        : $($script:Source)";
+Write-Host -ForegroundColor Green "Output        : $($script:Output)";
+Write-Host -ForegroundColor Green "Docs          : $($script:Docs)";
+Write-Host -ForegroundColor Green "Destination   : $($script:Destination)";
+Write-Host -ForegroundColor Green "ModulePath    : $($script:ModulePath)";
+Write-Host -ForegroundColor Green "ManifestPath  : $($script:ManifestPath)";
+Write-Host -ForegroundColor Green "TestFile      : $($script:TestFile)";
+Write-Host -ForegroundColor Green "Repository    : $($script:Repository)";
+Write-Host -ForegroundColor Green "PoshGallery   : $($script:PoshGallery)";
+Write-Host -ForegroundColor Green "DeployBranch  : $($script:DeployBranch)";
 
-Task default -depends LocalUser
+Task default -depends LocalUse
 
 Task LocalUse -Description "Setup for local use and testing" -depends Clean, BuildProject, CopyModuleFiles
 
