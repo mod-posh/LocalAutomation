@@ -5,6 +5,20 @@ All changes to this module should be reflected in this document.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [[1.3.0]](https://github.com/mod-posh/LocalAutomation/releases/tag/v1.3.0) - 2024-01-05
+
+This release adds support for CSharp Projects
+
+1. CSharpProject
+   1. Updated the psake to support C# projects
+      1. Added a check for git setup
+      2. Added a check for DefaultDocumentation nuget tool
+      3. Updated most of the tasks to work with C#
+      4. Added BlueSky as a notification option
+   2. Updated the nuget.config to work with nuget.org properly
+
+---
+
 ## [[1.2.0]](https://github.com/mod-posh/LocalAutomation/releases/tag/v1.2.0) - 2023-06-27
 
 This release updated a few issues with the CsharpModule
